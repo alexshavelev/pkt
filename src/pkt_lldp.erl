@@ -54,6 +54,11 @@ decode(<<?MANAGEMENT_ADDRESS:7, Length:9,
 decode(<<?ORGANIZATIONALLY_SPECIFIC:7, Length:9,
          Value:Length/bytes, Rest/bytes>>, Acc) ->
     Pdu = #organizationally_specific{ value = Value },
+    decode(Rest, [Pdu | Acc]);
+decode(<<?RCI:7, Length:9, Tail/bytes>>, Acc) ->
+    BitLen = Length * 8,
+    <<Value:BitLen, Rest/bytes>> = Tail,
+    Pdu = #rci{value = Value},
     decode(Rest, [Pdu | Acc]).
 
 encode([], Binary) -> Binary;
@@ -96,7 +101,9 @@ encode_pdu(#management_address{ value = Value }) ->
     <<?MANAGEMENT_ADDRESS:7, Length:9, Value:Length/bytes>>;
 encode_pdu(#organizationally_specific{ value = Value }) ->
     Length = byte_size(Value),
-    <<?ORGANIZATIONALLY_SPECIFIC:7, Length:9, Value:Length/bytes>>.
+    <<?ORGANIZATIONALLY_SPECIFIC:7, Length:9, Value:Length/bytes>>;
+encode_pdu(#rci{value = Value}) ->
+    <<?RCI:7, 2:9, Value:16>>.
 
 % ChassisID SubTypes
 map(chassis_id, ?CHASSIS_ID_IFAlias) -> interface_alias;

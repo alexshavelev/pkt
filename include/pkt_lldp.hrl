@@ -141,6 +141,14 @@
 -type organizationally_specific() :: #organizationally_specific{}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% RCI
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+-define(RCI, 128).
+
+-record(rci, { value = <<>> :: binary() }).
+-type rci() :: #rci{}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % LLDP Frame Format
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -153,7 +161,8 @@
              | system_desc()
              | system_capability()
              | management_address()
-             | organizationally_specific().
+             | organizationally_specific()
+             | rci().
 
 -record(lldp, { pdus = [] :: [pdu()] }).
 -type lldp() :: #lldp{}.
