@@ -8,54 +8,54 @@
 codec(Binary) when is_binary(Binary) -> { decode(Binary, []), <<>> };
 codec(#lldp{ pdus = Pdus }) -> pad_to(50, encode(Pdus, <<>>)).
 
-decode(<<?END_OF_LLDPDU:7, 0:9, _Tail/bytes>>, Acc) ->
+decode(<<?END_OF_LLDPDU:8, 0:8, _Tail/bytes>>, Acc) ->
     Acc2 = [end_of_lldpdu | Acc],
     #lldp{ pdus = lists:reverse(Acc2) };
-decode(<<?CHASSIS_ID:7, Length:9, SubTypeInt:8, Tail/bytes>>, Acc) ->
+decode(<<?CHASSIS_ID:8, Length:8, SubTypeInt:8, Tail/bytes>>, Acc) ->
     ValueLen = Length - 1,
     <<Value:ValueLen/bytes, Rest/bytes>> = Tail,
     SubType = map(chassis_id, SubTypeInt),
     Pdu = #chassis_id{ subtype = SubType, value = Value },
     decode(Rest, [Pdu | Acc]);
-decode(<<?PORT_ID:7, Length:9, SubTypeInt:8, Tail/bytes>>, Acc) ->
+decode(<<?PORT_ID:8, Length:8, SubTypeInt:8, Tail/bytes>>, Acc) ->
     ValueLen = Length - 1,
     <<Value:ValueLen/bytes, Rest/bytes>> = Tail,
     SubType = map(port_id, SubTypeInt),
     Pdu = #port_id{ subtype = SubType, value = Value },
     decode(Rest, [Pdu | Acc]);
-decode(<<?TTL:7, Length:9, Tail/bytes>>, Acc) ->
+decode(<<?TTL:8, Length:8, Tail/bytes>>, Acc) ->
     BitLen = Length * 8,
     <<Value:BitLen, Rest/bytes>> = Tail,
     Pdu = #ttl{ value = Value },
     decode(Rest, [Pdu | Acc]);
-decode(<<?PORT_DESC:7, Length:9,
+decode(<<?PORT_DESC:8, Length:8,
          Value:Length/bytes, Rest/bytes>>, Acc) ->
     Pdu = #port_desc{ value = decode_string(Value) },
     decode(Rest, [Pdu | Acc]);
-decode(<<?SYSTEM_NAME:7, Length:9,
+decode(<<?SYSTEM_NAME:8, Length:8,
          Value:Length/bytes, Rest/bytes>>, Acc) ->
     Pdu = #system_name{ value = decode_string(Value) },
     decode(Rest, [Pdu | Acc]);
-decode(<<?SYSTEM_DESC:7, Length:9,
+decode(<<?SYSTEM_DESC:8, Length:8,
          Value:Length/bytes, Rest/bytes>>, Acc) ->
     Pdu = #system_desc{ value = decode_string(Value) },
     decode(Rest, [Pdu | Acc]);
-decode(<<?SYSTEM_CAPABILITY:7, _Length:9, Tail/bytes>>, Acc) ->
+decode(<<?SYSTEM_CAPABILITY:8, _Length:8, Tail/bytes>>, Acc) ->
     <<SystemBin:16/bits, EnabledBin:16/bits, Rest/bytes>> = Tail,
     System = binary_to_flags(system_capability, SystemBin),
     Enabled = binary_to_flags(system_capability, EnabledBin),
     Pdu = #system_capability{ system = System,
                               enabled = Enabled },
     decode(Rest, [Pdu | Acc]);
-decode(<<?MANAGEMENT_ADDRESS:7, Length:9,
+decode(<<?MANAGEMENT_ADDRESS:8, Length:8,
          Value:Length/bytes, Rest/bytes>>, Acc) ->
     Pdu = #management_address{ value = Value },
     decode(Rest, [Pdu | Acc]);
-decode(<<?ORGANIZATIONALLY_SPECIFIC:7, Length:9,
+decode(<<?ORGANIZATIONALLY_SPECIFIC:8, Length:8,
          Value:Length/bytes, Rest/bytes>>, Acc) ->
     Pdu = #organizationally_specific{ value = Value },
     decode(Rest, [Pdu | Acc]);
-decode(<<?RCI:7, Length:9, Tail/bytes>>, Acc) ->
+decode(<<?RCI:8, Length:8, Tail/bytes>>, Acc) ->
     BitLen = Length * 8,
     <<Value:BitLen, Rest/bytes>> = Tail,
     Pdu = #rci{value = Value},
@@ -67,43 +67,44 @@ encode([Pdu | Rest], Binary) ->
     encode(Rest, <<Binary/bytes, PduBin/bytes>>).
 
 encode_pdu(end_of_lldpdu) ->
-    <<?END_OF_LLDPDU:7, 0:9>>;
+    <<?END_OF_LLDPDU:8, 0:8>>;
 encode_pdu(#chassis_id{ subtype = SubType, value = Value }) ->
     SubTypeInt = map(chassis_id, SubType),
     Length = byte_size(Value),
-    <<?CHASSIS_ID:7, (Length + 1):9, SubTypeInt:8, Value:Length/bytes>>;
+    <<?CHASSIS_ID:8, (Length + 1):8, SubTypeInt:8, Value:Length/bytes>>;
 encode_pdu(#port_id{ subtype = SubType, value = Value }) ->
     SubTypeInt = map(port_id, SubType),
     Length = byte_size(Value),
-    <<?PORT_ID:7, (Length + 1):9, SubTypeInt:8, Value:Length/bytes>>;
+    <<?PORT_ID:8, (Length + 1):8, SubTypeInt:8, Value:Length/bytes>>;
 encode_pdu(#ttl{ value = Value }) ->
-    <<?TTL:7, 2:9, Value:16>>;
+    <<?TTL:8, 2:8, Value:16>>;
 encode_pdu(#port_desc{ value = Value }) ->
     Value2 = encode_string(Value),
     Length = byte_size(Value2),
-    <<?PORT_DESC:7, Length:9, Value2:Length/bytes>>;
+    <<?PORT_DESC:8, Length:8, Value2:Length/bytes>>;
 encode_pdu(#system_name{ value = Value }) ->
     Value2 = encode_string(Value),
     Length = byte_size(Value2),
-    <<?SYSTEM_NAME:7, Length:9, Value2:Length/bytes>>;
+    <<?SYSTEM_NAME:8, Length:8, Value2:Length/bytes>>;
 encode_pdu(#system_desc{ value = Value }) ->
     Value2 = encode_string(Value),
     Length = byte_size(Value2),
-    <<?SYSTEM_DESC:7, Length:9, Value2:Length/bytes>>;
+    <<?SYSTEM_DESC:8, Length:8, Value2:Length/bytes>>;
 encode_pdu(#system_capability{ system = System,
                                enabled = Enabled }) ->
     SystemBin = flags_to_binary(system_capability, System, 16),
     EnabledBin = flags_to_binary(system_capability, Enabled, 16),
     Value = <<SystemBin:2/bytes, EnabledBin:2/bytes>>,
-    <<?SYSTEM_CAPABILITY:7, 4:9, Value:4/bytes>>;
+    <<?SYSTEM_CAPABILITY:8, 4:8, Value:4/bytes>>;
 encode_pdu(#management_address{ value = Value }) ->
     Length = byte_size(Value),
-    <<?MANAGEMENT_ADDRESS:7, Length:9, Value:Length/bytes>>;
+    <<?MANAGEMENT_ADDRESS:8, Length:8, Value:Length/bytes>>;
 encode_pdu(#organizationally_specific{ value = Value }) ->
     Length = byte_size(Value),
-    <<?ORGANIZATIONALLY_SPECIFIC:7, Length:9, Value:Length/bytes>>;
+    <<?ORGANIZATIONALLY_SPECIFIC:8, Length:8, Value:Length/bytes>>;
 encode_pdu(#rci{value = Value}) ->
-    <<?RCI:7, 2:9, Value:16>>.
+
+    <<?RCI:8, 2:8, Value:16>>.
 
 % ChassisID SubTypes
 map(chassis_id, ?CHASSIS_ID_IFAlias) -> interface_alias;
